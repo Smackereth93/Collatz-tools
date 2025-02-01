@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimized Collatz Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .animation-container {
+            flex: 1.4;
+        }
+        .controls {
+            flex: 1;
+            text-align: left;
+            padding-left: 20px;
+        }
+        canvas {
+            border: 1px solid black;
+            background-color: white;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+            width: 100%;
+        }
+        .section {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 2px solid black;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tool 1: Optimized Collatz Visualization</h1>
+
+    <p>
+        This tool visualizes the <strong>Collatz Conjecture</strong> using a circular mapping system. 
+        Each full circle represents the interval between successive powers of 2, with numbers positions around the circumference 
+        determined by their proportion of the way through the interval.
+    </p>
+
+    <p>
+        This means that whereas under the operation 0.5(3n+1) numbers either map to a point further round in their current circle or a 
+        point close to the beginning of the next, they retain their position under division by 2. Thus for large numbers the pathway
+        around the circle becomes very predictable, with the error from the +1 failing to make an impact on the base pattern of n*1.5^r 
+        around the circle.
+    </p>
+        A smoother python animation is also available, if you have any interesting proof ideas based on the animation or anything below or 
+        you would like any further explanation or information please feel free to email mackermaths@gmail.com
+    <p>
+        
+    </p>
+
+    <div class="container">
+        <div class="animation-container">
+            <canvas id="canvas" width="700" height="700"></canvas>
+        </div>
+
+        <div class="controls">
+            <label>Enter a number:</label>
+            <input type="number" id="numberInput" value="63728127" min="1">
+            <button onclick="startAnimation()">Start</button>
+            <button onclick="resetAnimation()">Reset</button>
+
+            <label for="speedSlider">Speed:</label>
+            <input type="range" id="speedSlider" min="0.1" max="2" value="0.4" step="0.1" oninput="updateSpeed()">
+            <span id="speedValue">1.0</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Hypothesis</h2>
+        <p>
+            Beyond a certain power of 2, the error due to adding 1 cannot exceed the 
+            error introduced by the irrationality of log base 2 of 3 without a number 
+            dropping below its initial value. This constraint may explain why 
+            numbers tend to return to lower values rather than growing indefinitely and suggests it may be provable that a number cannot return to its own value without dropping below, meaning there can be no lowest number in a high cycle and consequently no loops other than the trivial 1,2,1 loop.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Pathway of Number</h2>
+        <p id="pathwayOutput">Pathway will be displayed here after animation completes.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 280;  // Increased by factor of 1.4 (original was 200)
+        let number = 63728127;
+        let running = false;
+        let speed = 2.0;
+        let animationFrame;
+        let moveIndex = 0;
+        let path = [];
+        let pathwayNumbers = [];
+
+        function drawCircle() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw outer circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw labels for key points
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("2^n", centerX - 15, centerY - radius - 10);  
+            ctx.fillText("5·2^n", centerX + radius + 10, centerY + 5);  
+            ctx.fillText("6·2^n", centerX - 20, centerY + radius + 20);
+            ctx.fillText("7·2^n", centerX - radius - 40, centerY + 5);
+        }
+
+        function computePath() {
+            path = [];
+            pathwayNumbers = [];
+            let n = number;
+
+            while (n !== 1) {
+                let power = Math.floor(Math.log2(n));
+                let angle = (360 * (n - Math.pow(2, power))) / Math.pow(2, power);
+                angle = (angle * Math.PI) / 180;
+
+                let x = centerX + radius * Math.sin(angle);
+                let y = centerY - radius * Math.cos(angle);
+
+                path.push({ x, y });
+                pathwayNumbers.push(n);
+
+                n = (n % 2 === 0) ? n / 2 : 3 * n + 1;
+            }
+
+            path.push({ x: centerX, y: centerY });
+            pathwayNumbers.push(1);
+        }
+
+        function startAnimation() {
+            if (running) return;
+            number = parseInt(document.getElementById("numberInput").value);
+            if (isNaN(number) || number <= 1) {
+                alert("Please enter a positive integer greater than 1.");
+                return;
+            }
+
+            running = true;
+            moveIndex = 0;
+            computePath();
+            drawCircle();
+            requestAnimationFrame(animateNumber);
+        }
+
+        function animateNumber() {
+            if (!running || moveIndex >= path.length - 1) {
+                running = false;
+                document.getElementById("pathwayOutput").innerText = "Pathway: " + pathwayNumbers.join(" → ");
+                return;
+            }
+
+            drawCircle();
+
+            ctx.beginPath();
+            ctx.moveTo(path[0].x, path[0].y);
+            for (let i = 1; i <= moveIndex; i++) {
+                ctx.lineTo(path[i].x, path[i].y);
+            }
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            moveIndex++;
+
+            setTimeout(() => {
+                animationFrame = requestAnimationFrame(animateNumber);
+            }, 100 / speed);
+        }
+
+        function resetAnimation() {
+            running = false;
+            cancelAnimationFrame(animationFrame);
+            drawCircle();
+            document.getElementById("pathwayOutput").innerText = "Pathway will be displayed here after animation completes.";
+        }
+
+        function updateSpeed() {
+            speed = document.getElementById("speedSlider").value;
+            document.getElementById("speedValue").textContent = speed;
+        }
+
+        drawCircle();
+    </script>
+
+</body>
+</html>
