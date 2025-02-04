@@ -1,220 +1,255 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collatz Visualization</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            max-width: 900px;
-            margin: auto;
-        }
-        .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-        }
-        .animation-container {
-            flex: 1.4;
-        }
-        .controls {
-            flex: 1;
-            text-align: left;
-            padding-left: 20px;
-        }
-        canvas {
-            border: 1px solid black;
-            background-color: white;
-        }
-        input, button {
-            padding: 10px;
-            margin: 5px 0;
-            font-size: 16px;
-            width: 100%;
-        }
-        .section {
-            margin-top: 40px;
-            padding: 20px;
-            border-top: 2px solid black;
-            text-align: left;
-        }
-    </style>
-    <script defer src="https://vercel.com/analytics/script.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collatz Visualization</title>
+  <style>
+      body {
+          font-family: Arial, sans-serif;
+          text-align: center;
+          padding: 20px;
+          max-width: 900px;
+          margin: auto;
+      }
+      .section {
+          margin-top: 40px;
+          padding: 20px;
+          border-top: 2px solid black;
+          text-align: left;
+      }
+      canvas {
+          border: 1px solid black;
+          background-color: white;
+      }
+      /* Scrolling box on the right for the numeric pathway */
+      .pathway-container {
+          display: inline-block;
+          width: 900px;
+          height: 75px;
+          overflow-y: scroll;
+          background-color: #f2f2f2;
+          border: 1px solid #ccc;
+          vertical-align: top;
+          margin-left: 20px;
+          text-align: left;
+          padding: 5px;
+          font-family: monospace;
+      }
+  </style>
 </head>
 <body>
 
-    <h1>Tool 1: Collatz Visualization</h1>
-    <p>A smoother python animation is also available, if you have any interesting proof ideas based on the animation or anything below or you would like any further explanation or information please feel free to email <a href="mailto:mackermaths@gmail.com">mackermaths@gmail.com</a>. This animation should not be reproduced or cited without permission and acknowledgement.</p>
-    <p>
-        This tool visualizes the Collatz Conjecture using a circular mapping system. Each full circle represents the interval between successive powers of 2 or 3, with numbers' positions around the circumference determined by their proportion of the way through the interval.
-    </p>
-    <p>
-        This means that whereas under the operation 0.5(3n+1) numbers either map to a point further around in their current circle or a point close to the beginning of the next, they retain their position under division by 2. Thus, for large numbers, the pathway around the circle becomes very predictable, with the error from the +1 failing to make an impact on the base pattern of n*1.5^r around the circle.
-    </p>
+  <h1>Tool 1: Collatz Visualization</h1>
+  <p>
+    A smoother python animation is also available, if you have any interesting proof ideas based on the animation or anything below or you would like any further explanation or information please feel free to email 
+    <a href="mailto:mackermaths@gmail.com">mackermaths@gmail.com</a>. This animation should not be reproduced or cited without permission and acknowledgement.
+  </p>
+
+  <p>
+    This tool visualizes the Collatz Conjecture using a circular mapping system. Each full circle represents the interval between successive powers of 2 or 3, with numbers' positions around the circumference determined by their proportion of the way through the interval.
+  </p>
+
+  <p>
+    This means that whereas under the operation 0.5(3n+1) numbers either map to a point further around in their current circle or a point close to the beginning of the next, they retain their position under division by 2. Thus, for large numbers, the pathway around the circle becomes very predictable, with the error from the +1 failing to make an impact on the base pattern of n*1.5^r around the circle.
+  </p>
+
+  <!-- Controls Above the Circle -->
+  <div style="margin-bottom:20px; text-align:center;">
+    <label>Enter a number:</label>
+    <input type="number" id="numberInput" value="63728127" min="1">
+    <button onclick="startAnimation()">Start</button>
+    <button onclick="resetAnimation()">Reset</button>
     <button onclick="toggleBase()">Switch to Base-3</button>
-    
-    <div class="container">
-        <div class="animation-container">
-            <canvas id="canvas" width="700" height="700"></canvas>
-        </div>
-        <div class="controls">
-            <label>Enter a number:</label>
-            <input type="number" id="numberInput" value="63728127" min="1">
-            <button onclick="startAnimation()">Start</button>
-            <button onclick="resetAnimation()">Reset</button>
-            <label for="speedSlider">Speed (Delay):</label>
-            <input type="range" id="speedSlider" min="0.00025" max="0.15" value="0.02" step="0.0025" oninput="updateSpeed()">
-            <span id="speedValue">2.0</span>
-        </div>
-    </div>
+    <label for="speedSlider">Speed (Delay):</label>
+    <input type="range" id="speedSlider" min="0.00025" max="0.15" value="0.02" step="0.0025" oninput="updateSpeed()">
+    <span id="speedValue">2.0</span>
+  </div>
 
-    <script>
-        let currentBase = 2;
-        let animationFrame;
-        let moveIndex = 0;
-        let path = [];
-        let running = false;
-        let speed = 0.3;
-        let number = 63728127;
+  <h2>Collatz Pathway Animation</h2>
+  <div style="display:inline-block;">
+    <canvas id="canvas" width="700" height="700"></canvas>
+  </div>
+  <div class="pathway-container">
+    <strong>Pathway:</strong>
+    <pre id="pathwayBox"></pre>
+  </div>
 
-        function toggleBase() {
-            currentBase = currentBase === 2 ? 3 : 2;
-            document.querySelector("button").textContent = currentBase === 2 ? "Switch to Base-3" : "Switch to Base-2";
-            resetAnimation();
+  <script>
+    let currentBase = 2;
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 280;
+
+    let speed = 0.02;
+    let number = 63728127;
+    let path = [];
+    let moveIndex = 0;
+    let running = false;
+
+    // references the scrolling box
+    const pathwayBox = document.getElementById("pathwayBox");
+
+    function toggleBase() {
+      currentBase = (currentBase === 2) ? 3 : 2;
+      const btn = document.querySelector('button[onclick="toggleBase()"]');
+      if (currentBase === 2) {
+        btn.textContent = "Switch to Base-3";
+      } else {
+        btn.textContent = "Switch to Base-2";
+      }
+      resetAnimation();
+    }
+
+    function drawCircle() {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Outer circle
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Decide on labels based on base
+      let labels;
+      if (currentBase === 2) {
+        labels = [
+          { text: '2^n', x: centerX, y: centerY - radius - 15 },
+          { text: '5·2^n', x: centerX + radius + 15, y: centerY },
+          { text: '6·2^n', x: centerX, y: centerY + radius + 15 },
+          { text: '7·2^n', x: centerX - radius - 40, y: centerY }
+        ];
+      } else {
+        // base 3
+        labels = [
+          { text: '3^n', x: centerX, y: centerY - radius - 15 },
+          { text: '9·3^n', x: centerX + radius + 15, y: centerY },
+          { text: '6·3^n', x: centerX, y: centerY + radius + 15 }
+        ];
+      }
+
+      ctx.font = '16px Arial';
+      ctx.fillStyle = 'black';
+      labels.forEach(label => {
+        ctx.fillText(label.text, label.x, label.y);
+      });
+    }
+
+    function computePath() {
+      path = [];
+      let n = number;
+      while (n !== 1) {
+        // compute angle based on currentBase
+        let power = Math.floor(Math.log(n) / Math.log(currentBase));
+        let angle = (360 * (n - Math.pow(currentBase, power))) / Math.pow(currentBase, power);
+        angle = (angle * Math.PI) / 180;
+
+        let x = centerX + radius * Math.sin(angle);
+        let y = centerY - radius * Math.cos(angle);
+
+        path.push({ x, y, value: n });
+        n = (n % 2 === 0) ? n / 2 : 3 * n + 1;
+      }
+      path.push({ x: centerX, y: centerY, value: 1 });
+    }
+
+    function startAnimation() {
+      if (running) return;
+      number = parseInt(document.getElementById("numberInput").value);
+      speed = parseFloat(document.getElementById("speedSlider").value);
+      if (isNaN(number) || number <= 1) {
+        alert("Please enter a positive integer greater than 1.");
+        return;
+      }
+      running = true;
+      moveIndex = 0;
+      pathwayBox.textContent = ""; // clear the old pathway
+      computePath();
+      animateNumber();
+    }
+
+    function animateNumber() {
+      if (!running || moveIndex >= path.length) {
+        running = false;
+        return;
+      }
+      drawCircle();
+
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i <= moveIndex; i++) {
+        ctx.lineTo(path[i].x, path[i].y);
+      }
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Append the current node to the pathway text
+      pathwayBox.textContent += path[moveIndex].value + (moveIndex < path.length - 1 ? " → " : "\n");
+
+      moveIndex++;
+      setTimeout(animateNumber, 1000 * speed);
+    }
+
+    function resetAnimation() {
+      running = false;
+      drawCircle();
+      pathwayBox.textContent = "";
+    }
+
+    function updateSpeed() {
+      speed = parseFloat(document.getElementById("speedSlider").value);
+      document.getElementById("speedValue").textContent = speed.toFixed(2);
+    }
+
+    // Draw initial circle (Base-2 by default)
+    drawCircle();
+  </script>
+
+  <h2>Polynomial Pathway Tool</h2>
+  <p>This tool allows you to generate polynomial transformations based on a sequence of 'f' and 'g' operations. The starting polynomials are <strong>f(x) = k + 0</strong> and <strong>g(x) = k + 0</strong>, and each operation modifies the coefficients according to predefined rules. This tool helps visualize how the polynomials evolve under different transformation sequences.</p>
+  <p>Enter a sequence of 'f' and 'g' operations to transform the starting polynomials.</p>
+  <input type="text" id="operationInput" placeholder="Enter f/g sequence">
+  <button onclick="calculatePolynomials()">Generate</button>
+  <p id="polynomialOutput"></p>
+
+  <script>
+    function calculatePolynomials() {
+      let operations = document.getElementById("operationInput").value.toLowerCase();
+      let a = 1, b = 0, c = 1, d = 0;
+      for (let op of operations) {
+        if (op === 'f') {
+          if (d % 2 === 1) {
+            a *= 2; c *= 3; d = Math.floor(1.5 * d + 0.5);
+          } else {
+            b += a; a *= 2; d += c; d = Math.floor(1.5 * d + 0.5); c *= 3;
+          }
+        } else if (op === 'g') {
+          if (d % 2 === 0) {
+            a *= 2; d /= 2;
+          } else {
+            b += a; a *= 2; d += c; d = Math.floor(d / 2);
+          }
         }
+      }
+      document.getElementById("polynomialOutput").innerText = `f(x): ${a}k + ${b}, g(x): ${c}k + ${d}`;
+    }
+  </script>
 
-        function drawCircle() {
-            const labels = currentBase === 2 ? [
-                { text: '2^n', x: 350, y: 60 },
-                { text: '5·2^n', x: 650, y: 360 },
-                { text: '6·2^n', x: 350, y: 660 },
-                { text: '7·2^n', x: 50, y: 360 }
-            ] : [
-                { text: '3^n', x: 350, y: 60 },
-                { text: '9·3^n', x: 650, y: 360 },
-                { text: '6·3^n', x: 350, y: 660 }
-            ];
-            const canvas = document.getElementById("canvas");
-            const ctx = canvas.getContext("2d");
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = 280;
+  <div class="section">
+    <h2>Proof Ideas & Hypothesis</h2>
+    <p><strong>Divergence Constraint:</strong> The ergodic nature of the pathways forces them to visit the lower proportions of the circle that demand high numbers of even steps within the number's 2-adically defined pathway. A number's position in the circle puts constraints on its logarithmic pathway (definable pathway is log base 2 of the number). The bottom half of numbers require two halving steps in their LP, the bottom quarter 3 and so on. Once a pathway lands in a fraction that demands more halving steps than (3n+1)/2 steps it must start converging below its starting value. This can be visually observed extremely clearly in the circle as pathways tend to swiftly converge after they land just above a power of 2. The default number is one of the longest known pathways and achieves this by just increasing enough and avoiding numbers that demand high levels of halving enough to keep above itself for a long time, eventually the number of halving steps catch up though and it drops.</p>
+    <p><strong>Loop Elimination:</strong> The accuracy of 7/12 as a rational approximation to log base 2 of 3 and Baker's bound for accuracy beyond this suggests that for large values of n, the error due to adding 1 cannot exceed the error from the irrationality of log base 2 of 3, preventing further loops.</p>
+  </div>
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.font = '16px Arial';
-            ctx.fillStyle = 'black';
-            labels.forEach(label => {
-                ctx.fillText(label.text, label.x, label.y);
-            });
-        }
-
-        function computePath() {
-            path = [];
-            let n = number;
-            while (n !== 1) {
-                let power = Math.floor(Math.log(n) / Math.log(currentBase));
-                let angle = (360 * (n - Math.pow(currentBase, power))) / Math.pow(currentBase, power);
-                angle = (angle * Math.PI) / 180;
-                let x = 350 + 280 * Math.sin(angle);
-                let y = 350 - 280 * Math.cos(angle);
-                path.push({ x, y });
-                n = (n % 2 === 0) ? n / 2 : 3 * n + 1;
-            }
-            path.push({ x: 350, y: 350 });
-        }
-
-        function startAnimation() {
-            if (running) return;
-            number = parseInt(document.getElementById("numberInput").value);
-            speed = parseFloat(parseFloat(document.getElementById("speedSlider").value));
-            if (isNaN(number) || number <= 1) {
-                alert("Please enter a positive integer greater than 1.");
-                return;
-            }
-            running = true;
-            moveIndex = 0;
-            computePath();
-            requestAnimationFrame(animateNumber);
-        }
-
-        function animateNumber() {
-            if (!running || moveIndex >= path.length - 1) {
-                running = false;
-                return;
-            }
-            const canvas = document.getElementById("canvas");
-            const ctx = canvas.getContext("2d");
-            drawCircle();
-            ctx.beginPath();
-            ctx.moveTo(path[0].x, path[0].y);
-            for (let i = 1; i <= moveIndex; i++) {
-                ctx.lineTo(path[i].x, path[i].y);
-            }
-            ctx.strokeStyle = (path[moveIndex].n < number) ? "green" : "red";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            moveIndex++;
-            setTimeout(() => { animationFrame = requestAnimationFrame(animateNumber); }, 1000 * speed);
-        }
-
-        function resetAnimation() {
-            running = false;
-            cancelAnimationFrame(animationFrame);
-            drawCircle();
-        }
-
-        function updateSpeed() {
-            speed = parseFloat(document.getElementById("speedSlider").value);
-            document.getElementById("speedValue").textContent = speed;
-        }
-
-        drawCircle();
-    </script>
-
-    <h1>Tool 2: Pathway Polynomial Generator</h1>
-    <p>This tool allows you to generate polynomial transformations based on a sequence of 'f' and 'g' operations. The starting polynomials are <strong>f(x) = k + 0</strong> and <strong>g(x) = k + 0</strong>, and each operation modifies the coefficients according to predefined rules. This tool helps visualize how the polynomials evolve under different transformation sequences.</p>
-    <p>Enter a sequence of 'f' and 'g' operations to transform the starting polynomials.</p>
-    <input type="text" id="operationInput" placeholder="Enter f/g sequence">
-    <button onclick="calculatePolynomials()">Generate</button>
-    <p id="polynomialOutput"></p>
-
-    <script>
-        function calculatePolynomials() {
-            let operations = document.getElementById("operationInput").value.toLowerCase();
-            let a = 1, b = 0, c = 1, d = 0;
-            for (let op of operations) {
-                if (op === 'f') {
-                    if (d % 2 === 1) {
-                        a *= 2; c *= 3; d = Math.floor(1.5 * d + 0.5);
-                    } else {
-                        b += a; a *= 2; d += c; d = Math.floor(1.5 * d + 0.5); c *= 3;
-                    }
-                } else if (op === 'g') {
-                    if (d % 2 === 0) {
-                        a *= 2; d /= 2;
-                    } else {
-                        b += a; a *= 2; d += c; d = Math.floor(d / 2);
-                    }
-                }
-            }
-            document.getElementById("polynomialOutput").innerText = `f(x): ${a}k + ${b}, g(x): ${c}k + ${d}`;
-        }
-    </script>
- <div class="section">
-        <h2>Proof Ideas & Hypothesis</h2>
-        <ul>
-            <li><strong>Divergence Constraint:</strong> The ergodic nature of the pathways forces them to visit the lower proportions of the circle that demand high numbers of even steps within the number's 2-adically defined pathway.A number's postion in the circle puts constraints on it's logarithmic pathway (definable pathway is log base 2 of the number). The bottom half of numbers require two halving steps in their LP, the bottom quarter 3 and so on. Once a pathway lands in a fraction that demands more halving steps than (3n+1)/2 steps it must start converging below its starting value. This can be visually observed extremely clearly in the circle as pathways tend to swiftly converge after they land just above a power of 2. The default number is one of the longest known pathways and achieves this by just increasing enough and avoiding numbers that demand high levels of halving enough to keep above itself for a long time, eventually the number of halving steps catch up though and it drops.</li>
-            <li><strong>Loop Elimination:</strong> The accuracy of 7/12 as a rational approximation to log base 2 of 3 and Baker's bound for accuracy beyond this suggests that for large values of n, the error due to adding 1 cannot exceed the error from the irrationality of log base 2 of 3, preventing further loops.</li>
-        </ul>
-    </div>
+<div class="section">
+    <h2>Embedded PDF</h2>
+    <p>Below is the embedded PDF document containing in-depth details and additional references:</p>
+    <iframe src="URL_TO_YOUR_PDF.pdf" width="100%" height="500px" style="border:none;"></iframe>
+</div>
 </body>
 </html>
