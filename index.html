@@ -159,7 +159,7 @@
             for (let i = 1; i <= moveIndex; i++) {
                 ctx.lineTo(path[i].x, path[i].y);
             }
-            ctx.strokeStyle = (number > path[moveIndex].n) ? "red" : "green";
+            ctx.strokeStyle = (path[moveIndex].n < number) ? "green" : "red";
             ctx.lineWidth = 2;
             ctx.stroke();
             moveIndex++;
