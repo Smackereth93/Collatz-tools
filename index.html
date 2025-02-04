@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optimized Collatz Visualization</title>
+    <title>Collatz Visualization</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,139 +46,113 @@
 </head>
 <body>
 
-    <h1>Tool 1: Optimized Collatz Visualization</h1>
-
+    <h1>Tool 1: Collatz Visualization</h1>
+    <p>A smoother python animation is also available, if you have any interesting proof ideas based on the animation or anything below or you would like any further explanation or information please feel free to email <a href="mailto:mackermaths@gmail.com">mackermaths@gmail.com</a>. This animation should not be reproduced or cited without permission and acknowledgement.</p>
     <p>
-        This tool visualizes the <strong>Collatz Conjecture</strong> using a circular mapping system. 
-        Each full circle represents the interval between successive powers of 2, with numbers positions around the circumference 
-        determined by their proportion of the way through the interval.
+        This tool visualizes the Collatz Conjecture using a circular mapping system. Each full circle represents the interval between successive powers of 2 or 3, with numbers' positions around the circumference determined by their proportion of the way through the interval.
     </p>
-
     <p>
-        This means that whereas under the operation 0.5(3n+1) numbers either map to a point further round in their current circle or a 
-        point close to the beginning of the next, they retain their position under division by 2. Thus for large numbers the pathway
-        around the circle becomes very predictable, with the error from the +1 failing to make an impact on the base pattern of n*1.5^r 
-        around the circle.
+        This means that whereas under the operation 0.5(3n+1) numbers either map to a point further around in their current circle or a point close to the beginning of the next, they retain their position under division by 2. Thus, for large numbers, the pathway around the circle becomes very predictable, with the error from the +1 failing to make an impact on the base pattern of n*1.5^r around the circle.
     </p>
-        A smoother python animation is also available, if you have any interesting proof ideas based on the animation or anything below or 
-        you would like any further explanation or information please feel free to email mackermaths@gmail.com. 
-        This animation should not be reproduced cited without permission and acknowledgement.
-    <p>
-        
-    </p>
-
+    <button onclick="toggleBase()">Switch to Base-3</button>
+    
     <div class="container">
         <div class="animation-container">
             <canvas id="canvas" width="700" height="700"></canvas>
         </div>
-
         <div class="controls">
             <label>Enter a number:</label>
             <input type="number" id="numberInput" value="63728127" min="1">
             <button onclick="startAnimation()">Start</button>
             <button onclick="resetAnimation()">Reset</button>
-
-            <label for="speedSlider">Speed:</label>
-            <input type="range" id="speedSlider" min="0.1" max="2" value="0.4" step="0.1" oninput="updateSpeed()">
-            <span id="speedValue">1.0</span>
+            <label for="speedSlider">Speed (Delay):</label>
+            <input type="range" id="speedSlider" min="0.00025" max="0.15" value="0.02" step="0.0025" oninput="updateSpeed()">
+            <span id="speedValue">2.0</span>
         </div>
     </div>
 
-    <div class="section">
-        <h2>Hypothesis</h2>
-        <p>
-            Beyond a certain power of 2, the error due to adding 1 cannot exceed the 
-            error introduced by the irrationality of log base 2 of 3 without a number 
-            dropping below its initial value. This constraint may explain why 
-            numbers tend to return to lower values rather than growing indefinitely and suggests it may be provable that a number cannot return to its own value without dropping below, meaning there can be no lowest number in a high cycle and consequently no loops other than the trivial 1,2,1 loop.
-        </p>
-    </div>
-
-    <div class="section">
-        <h2>Pathway of Number</h2>
-        <p id="pathwayOutput">Pathway will be displayed here after animation completes.</p>
-    </div>
-
     <script>
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = 280;  // Increased by factor of 1.4 (original was 200)
-        let number = 63728127;
-        let running = false;
-        let speed = 2.0;
+        let currentBase = 2;
         let animationFrame;
         let moveIndex = 0;
         let path = [];
-        let pathwayNumbers = [];
+        let running = false;
+        let speed = 0.3;
+        let number = 63728127;
+
+        function toggleBase() {
+            currentBase = currentBase === 2 ? 3 : 2;
+            document.querySelector("button").textContent = currentBase === 2 ? "Switch to Base-3" : "Switch to Base-2";
+            resetAnimation();
+        }
 
         function drawCircle() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const labels = currentBase === 2 ? [
+                { text: '2^n', x: 350, y: 60 },
+                { text: '5·2^n', x: 650, y: 360 },
+                { text: '6·2^n', x: 350, y: 660 },
+                { text: '7·2^n', x: 50, y: 360 }
+            ] : [
+                { text: '3^n', x: 350, y: 60 },
+                { text: '9·3^n', x: 650, y: 360 },
+                { text: '6·3^n', x: 350, y: 660 }
+            ];
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 280;
 
-            // Draw outer circle
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
             ctx.stroke();
-
-            // Draw labels for key points
-            ctx.font = "16px Arial";
-            ctx.fillStyle = "black";
-            ctx.fillText("2^n", centerX - 15, centerY - radius - 10);  
-            ctx.fillText("5·2^n", centerX + radius + 10, centerY + 5);  
-            ctx.fillText("6·2^n", centerX - 20, centerY + radius + 20);
-            ctx.fillText("7·2^n", centerX - radius - 40, centerY + 5);
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'black';
+            labels.forEach(label => {
+                ctx.fillText(label.text, label.x, label.y);
+            });
         }
 
         function computePath() {
             path = [];
-            pathwayNumbers = [];
             let n = number;
-
             while (n !== 1) {
-                let power = Math.floor(Math.log2(n));
-                let angle = (360 * (n - Math.pow(2, power))) / Math.pow(2, power);
+                let power = Math.floor(Math.log(n) / Math.log(currentBase));
+                let angle = (360 * (n - Math.pow(currentBase, power))) / Math.pow(currentBase, power);
                 angle = (angle * Math.PI) / 180;
-
-                let x = centerX + radius * Math.sin(angle);
-                let y = centerY - radius * Math.cos(angle);
-
+                let x = 350 + 280 * Math.sin(angle);
+                let y = 350 - 280 * Math.cos(angle);
                 path.push({ x, y });
-                pathwayNumbers.push(n);
-
                 n = (n % 2 === 0) ? n / 2 : 3 * n + 1;
             }
-
-            path.push({ x: centerX, y: centerY });
-            pathwayNumbers.push(1);
+            path.push({ x: 350, y: 350 });
         }
 
         function startAnimation() {
             if (running) return;
             number = parseInt(document.getElementById("numberInput").value);
+            speed = parseFloat(parseFloat(document.getElementById("speedSlider").value));
             if (isNaN(number) || number <= 1) {
                 alert("Please enter a positive integer greater than 1.");
                 return;
             }
-
             running = true;
             moveIndex = 0;
             computePath();
-            drawCircle();
             requestAnimationFrame(animateNumber);
         }
 
         function animateNumber() {
             if (!running || moveIndex >= path.length - 1) {
                 running = false;
-                document.getElementById("pathwayOutput").innerText = "Pathway: " + pathwayNumbers.join(" → ");
                 return;
             }
-
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
             drawCircle();
-
             ctx.beginPath();
             ctx.moveTo(path[0].x, path[0].y);
             for (let i = 1; i <= moveIndex; i++) {
@@ -187,28 +161,59 @@
             ctx.strokeStyle = "red";
             ctx.lineWidth = 2;
             ctx.stroke();
-
             moveIndex++;
-
-            setTimeout(() => {
-                animationFrame = requestAnimationFrame(animateNumber);
-            }, 100 / speed);
+            setTimeout(() => { animationFrame = requestAnimationFrame(animateNumber); }, 1000 * speed);
         }
 
         function resetAnimation() {
             running = false;
             cancelAnimationFrame(animationFrame);
             drawCircle();
-            document.getElementById("pathwayOutput").innerText = "Pathway will be displayed here after animation completes.";
         }
 
         function updateSpeed() {
-            speed = document.getElementById("speedSlider").value;
+            speed = parseFloat(document.getElementById("speedSlider").value);
             document.getElementById("speedValue").textContent = speed;
         }
 
         drawCircle();
     </script>
 
+    <h1>Tool 2: Pathway Polynomial Generator</h1>
+    <p>This tool allows you to generate polynomial transformations based on a sequence of 'f' and 'g' operations. These are the odd 0.5(3n+1) and even n/2 steps of the Collatz.</p>
+    <p>The starting polynomials are <strong>f(x) = k + 0</strong> and <strong>g(x) = k + 0</strong>, and each operation modifies the coefficients according to predefined rules. This tool helps visualize how the polynomials evolve under different transformation sequences.</p>
+    <p>Enter a sequence of 'f' and 'g' operations to transform the starting polynomials.</p>
+    <input type="text" id="operationInput" placeholder="Enter f/g sequence">
+    <button onclick="calculatePolynomials()">Generate</button>
+    <p id="polynomialOutput"></p>
+
+    <script>
+        function calculatePolynomials() {
+            let operations = document.getElementById("operationInput").value.toLowerCase();
+            let a = 1, b = 0, c = 1, d = 0;
+            for (let op of operations) {
+                if (op === 'f') {
+                    if (d % 2 === 1) {
+                        a *= 2; c *= 3; d = Math.floor(1.5 * d + 0.5);
+                    } else {
+                        b += a; a *= 2; d += c; d = Math.floor(1.5 * d + 0.5); c *= 3;
+                    }
+                } else if (op === 'g') {
+                    if (d % 2 === 0) {
+                        a *= 2; d /= 2;
+                    } else {
+                        b += a; a *= 2; d += c; d = Math.floor(d / 2);
+                    }
+                }
+            }
+            document.getElementById("polynomialOutput").innerText = `f(x): ${a}k + ${b}, g(x): ${c}k + ${d}`;
+        }
+    </script>
+<div class="section">
+        <h2>Proof Ideas & Hypothesis</h2>
+        <p>
+            Beyond a certain power of 2, the error due to adding 1 cannot exceed the error introduced by the irrationality of log base 2 of 3 without a number dropping below its initial value. This constraint may explain why numbers tend to return to lower values rather than growing indefinitely.
+        </p>
+    </div>
 </body>
 </html>
