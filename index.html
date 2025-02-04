@@ -159,7 +159,7 @@
             for (let i = 1; i <= moveIndex; i++) {
                 ctx.lineTo(path[i].x, path[i].y);
             }
-            ctx.strokeStyle = "red";
+            ctx.strokeStyle = path[moveIndex].y > 350 ? "red" : "green";
             ctx.lineWidth = 2;
             ctx.stroke();
             moveIndex++;
@@ -212,10 +212,7 @@
 <div class="section">
         <h2>Proof Ideas & Hypothesis</h2>
         <p>
-        Non-divergence: the proportion of halving steps in a number's pathway increases exponentially as we approach numbers just above a power of 2. All numbers under 2^k - 1 must contain at least one halving step in their 2-adic defined path, the bottom half at least 2, the bottom quarter at least 3 and so on. Initially a number can avoid too many halving steps to dip below itself but due to the ergodic nature of the pathway around the circle for high values of n it must cross into a high halving zone at some point, usually after 12 steps and within at least the bottom 1/2^n . This means that any arbitrarily long pathway must be of an arbitrarily large number, from here I hope to build a more formal proof that all numbers dip below thier initial value by considering the cumulative impact of this demand for halving steps.
-        </p>
-        <p>
-        Non-looping: It can be shown using the polynomial generator above that an arbitrarily high proportion of numbers from each circle must drop below their initial value. This means that the angular error from the accumulated +1 steps will, at a certain point, be arbitrarily small. As the error from approximating log bas 2 of 3 is bounded by Baker's bound at a certain minimum value which actually increases exponentially in numerical value as our number of steps increases, the error from +1 can never catch up beyond a certain point, leaving numbers' pathways entirely dominated by the 3/2 multiplier until halving steps force them downwards. Loops for high values of n depend on the two errors matching, it is clear from the animated pathways of very large, very divergent numbers around the circle that the +1 error has almost no effect for large values. This also explains why larger numbers' pathway lengths only increase logarithmically.    
+            Beyond a certain power of 2, the error due to adding 1 cannot exceed the error introduced by the irrationality of log base 2 of 3 without a number dropping below its initial value. This constraint may explain why numbers tend to return to lower values rather than growing indefinitely.
         </p>
     </div>
 </body>
